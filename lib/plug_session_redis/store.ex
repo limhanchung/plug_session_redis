@@ -13,11 +13,12 @@ defmodule PlugSessionRedis.Store do
   
   def init(opts) do
 
-    {Keyword.fetch!(opts, :table), Keyword.get(opts, :ttl, :infinite)}
+    {Keyword.fetch!(opts, :table), Keyword.get(opts, :ttl, :infinite), Keyword.fetch!(opts, :auth)}
   end
 
-  def get(_conn, sid, {table, _}) do
+  def get(_conn, sid, {table, _, auth}) do
     case :poolboy.transaction(table, fn(client) ->
+      :redo.cmd(client, ["AUTH", auth])
       :redo.cmd(client, ["GET", sid])
     end) do
       :undefined ->
@@ -31,25 +32,27 @@ defmodule PlugSessionRedis.Store do
     put_new(data, state)
   end
 
-  def put(_conn, sid, data, {table, _}) do
+  def put(_conn, sid, data, {table, _, auth}) do
     :poolboy.transaction(table, fn(client) ->
+      :redo.cmd(client, ["AUTH", auth])
       :redo.cmd(client, ["SET", sid, :erlang.term_to_binary(data)])
     end)
     sid
   end
 
-  def delete(_conn, sid, {table, _}) do
+  def delete(_conn, sid, {table, _, auth}) do
     :poolboy.transaction(table, fn(client) ->
+      :redo.cmd(client, ["AUTH", auth])
       :redo.cmd(client, ["DEL", sid])
     end)
     :ok
   end
 
-  defp put_new(data, {table, ttl}, counter \\ 0)
+  defp put_new(data, {table, ttl, auth}, counter \\ 0)
       when counter < @max_tries do
     sid = :crypto.strong_rand_bytes(96) |> Base.encode64
     case :poolboy.transaction(table, fn(client) ->
-      _store_data_with_ttl(client, ttl, sid, :erlang.term_to_binary(data))
+      _store_data_with_ttl(client, ttl, auth, sid, :erlang.term_to_binary(data))
     end) do
       "OK" ->
         sid
@@ -58,10 +61,12 @@ defmodule PlugSessionRedis.Store do
     end
   end
 
-  defp _store_data_with_ttl(client, :infinite, sid, bin) do
+  defp _store_data_with_ttl(client, :infinite, auth, sid, bin) do
+    :redo.cmd(client, ["AUTH", auth])
     :redo.cmd(client, ["SET", sid, bin])
   end
-  defp _store_data_with_ttl(client, ttl, sid, bin) do
+  defp _store_data_with_ttl(client, ttl, auth, sid, bin) do
+    :redo.cmd(client, ["AUTH", auth])
     [ret, _] = :redo.cmd(client, [["SET", sid, bin], ["EXPIRE", sid, ttl]])
     ret
   end

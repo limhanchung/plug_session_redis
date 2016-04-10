@@ -2,7 +2,7 @@ PlugSessionRedis
 ================
 [![hex.pm version](https://img.shields.io/hexpm/v/plug_session_redis.svg)](https://hex.pm/packages/plug_session_redis)
 
-The Redis Plug.Session adapter for the Phoenix framework.
+The Redis Plug.Session adapter with auth for the Phoenix framework. Original code at [aposto/plug_session_redis]https://github.com/aposto/plug_session_redis
 Poolboy + Redis.
 
 ## Usage 

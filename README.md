@@ -13,7 +13,7 @@ def application do
 end
 
 defp deps do
-  [{:plug_session_redis, "~> 0.1" }]
+  [{:plug_session_redis, git: "https://github.com/limhanchung/plug_session_redis.git" }]
 end
 ```
 
@@ -33,5 +33,6 @@ plug Plug.Session,
   table: :redis_sessions,   #  
   signing_salt: "123456",   #
   encryption_salt: "654321",#
+  auth: "your_auth_key",    #
   ttl: 360                  # use redis EXPIRE secs
 ```
